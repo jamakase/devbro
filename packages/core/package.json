@@ -1,0 +1,29 @@
+{
+  "name": "@agent-sandbox/core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@agent-sandbox/shared": "*",
+    "dockerode": "^4.0.2",
+    "ssh2": "^1.15.0"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^3.3.23",
+    "@types/ssh2": "^1.15.0",
+    "typescript": "^5.3.3"
+  }
+}
