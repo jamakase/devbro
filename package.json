@@ -2,6 +2,7 @@
   "name": "agent-sandbox",
   "private": true,
   "workspaces": [
+    "apps/*",
     "packages/*"
   ],
   "scripts": {
@@ -16,7 +17,7 @@
     "turbo": "^2.3.0",
     "typescript": "^5.3.3"
   },
-  "packageManager": "npm@10.2.4",
+  "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=20"
   }

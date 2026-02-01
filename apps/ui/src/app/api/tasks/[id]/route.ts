@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { TaskRepository } from "@agent-sandbox/server";
+import { DockerClient } from "@agent-sandbox/core";
 import { requireAuth } from "@/lib/auth-server";
 
 const taskRepo = new TaskRepository();
+const dockerClient = new DockerClient();
 
 // GET /api/tasks/[id] - Get task details
 export async function GET(
@@ -40,7 +42,19 @@ export async function DELETE(
     const session = await requireAuth();
     const { id } = await params;
 
-    // TODO: Stop container and cleanup volume before deleting
+    const task = await taskRepo.getTaskWithOwnerCheck(id, session.user.id);
+    if (!task) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    if (task.containerId) {
+      try {
+        await dockerClient.destroyContainer(task.containerId, true); // true to remove volume
+      } catch (error) {
+        console.error("Error destroying container:", error);
+        // Continue to delete task from DB
+      }
+    }
 
     const deleted = await taskRepo.deleteWithOwnerCheck(id, session.user.id);
     if (!deleted) {

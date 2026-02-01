@@ -40,3 +40,7 @@ yarn-error.log*
 
 # Testing
 coverage/
+
+.opencode
+.trae
+.agents

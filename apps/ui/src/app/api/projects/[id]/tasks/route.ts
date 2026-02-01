@@ -13,6 +13,8 @@ const createTaskSchema = z.object({
       githubBranch: z.string().optional(),
       memoryLimit: z.string().optional(),
       cpuLimit: z.string().optional(),
+      anthropicApiKey: z.string().optional(),
+      githubToken: z.string().optional(),
       prompt: z.string().optional(),
     })
     .optional(),

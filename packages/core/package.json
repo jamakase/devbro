@@ -14,10 +14,12 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "verify:cli-e2e": "tsc && node ./dist/scripts/verify-cli-e2e.js",
+    "verify:claude-e2e": "tsc && node ./dist/scripts/verify-claude-e2e.js"
   },
   "dependencies": {
-    "@agent-sandbox/shared": "*",
+    "@agent-sandbox/shared": "workspace:*",
     "dockerode": "^4.0.2",
     "ssh2": "^1.15.0"
   },

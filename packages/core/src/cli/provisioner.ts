@@ -119,26 +119,31 @@ export class CLIProvisioner {
     const command =
       cliTool === "claude-code"
         ? `${envPrefix}${toolName} "${escapedPrompt}"`
-        : `${envPrefix}${toolName} run --dir ${WORKSPACE_MOUNT_PATH} -- "${escapedPrompt}"`;
+        : `cd ${WORKSPACE_MOUNT_PATH} && ${envPrefix}${toolName} run -- "${escapedPrompt}"`;
 
     try {
-      const result = await this.dockerClient.execInContainer(containerId, [
+      const initial = await this.dockerClient.execInContainer(containerId, [
         "bash",
         "-c",
         command,
       ]);
 
-      return {
-        success: result.exitCode === 0,
-        exitCode: result.exitCode,
-        output: result.output,
-      };
+      if (initial.exitCode === 0) {
+        return { success: true, exitCode: 0, output: initial.output };
+      }
+
+      if (cliTool === "opencode" && /opencode-linux-arm64|failed to install the right version/i.test(initial.output)) {
+        const arch = await this.dockerClient.execInContainer(containerId, ["bash", "-c", "uname -m"]);
+        const pkg =
+          /aarch64|arm64/i.test(arch.output) ? "opencode-linux-arm64@latest" : "opencode-linux-x64@latest";
+        await this.tryInstall(containerId, `npm install -g ${pkg}`);
+        const retry = await this.dockerClient.execInContainer(containerId, ["bash", "-c", command]);
+        return { success: retry.exitCode === 0, exitCode: retry.exitCode, output: retry.output };
+      }
+
+      return { success: false, exitCode: initial.exitCode, output: initial.output };
     } catch (error) {
-      return {
-        success: false,
-        exitCode: 1,
-        output: error instanceof Error ? error.message : "Unknown error",
-      };
+      return { success: false, exitCode: 1, output: error instanceof Error ? error.message : "Unknown error" };
     }
   }
 

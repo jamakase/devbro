@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { TaskRepository } from "@agent-sandbox/server";
+import { DockerClient } from "@agent-sandbox/core";
 import { requireAuth } from "@/lib/auth-server";
 
 const taskRepo = new TaskRepository();
+const dockerClient = new DockerClient();
 
 // POST /api/tasks/[id]/stop - Stop task's container
 export async function POST(
@@ -22,8 +24,15 @@ export async function POST(
       return NextResponse.json(task);
     }
 
-    // TODO: Stop Docker container using core package
-    // For now, just update status
+    if (task.containerId) {
+      try {
+        await dockerClient.stopContainer(task.containerId);
+      } catch (error) {
+        console.error("Error stopping container:", error);
+        // Continue to update status even if docker stop fails (maybe already stopped)
+      }
+    }
+
     const updatedTask = await taskRepo.update(id, {
       status: "stopped",
       lastActivityAt: new Date(),
