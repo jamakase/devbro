@@ -6,6 +6,15 @@ import type {
   CreateServerResponse,
   TestServerResponse,
   HealthResponse,
+  GitHubStatusResponse,
+  GitHubReposResponse,
+  RepoMetadata,
+  BranchInfo,
+  CreateTaskRequest,
+  Task,
+  PullRequestPreview,
+  CreatePullRequestRequest,
+  CreatePullRequestResponse,
 } from "@agent-sandbox/shared";
 
 const API_BASE = "/api";
@@ -43,6 +52,12 @@ export const serverApi = {
       body: JSON.stringify(data),
     }),
 
+  register: (data: { name: string; metadata?: any }) =>
+    fetchApi<{ id: string; token: string }>("/servers/register", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
   test: (id: string) =>
     fetchApi<TestServerResponse>(`/servers/${id}/test`, {
       method: "POST",
@@ -54,7 +69,58 @@ export const serverApi = {
     }),
 };
 
+// Task API
+export const taskApi = {
+  create: (data: CreateTaskRequest) =>
+    fetchApi<Task>("/tasks", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getPrPreview: (taskId: string, params?: { base?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.base) searchParams.set("base", params.base);
+    const query = searchParams.toString();
+    return fetchApi<PullRequestPreview>(
+      `/tasks/${taskId}/pr-preview${query ? `?${query}` : ""}`
+    );
+  },
+
+  createPullRequest: (taskId: string, data: CreatePullRequestRequest) =>
+    fetchApi<CreatePullRequestResponse>(`/tasks/${taskId}/pull-request`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+};
+
 // Health API
 export const healthApi = {
   check: () => fetchApi<HealthResponse>("/health"),
+};
+
+// GitHub API
+export const githubApi = {
+  getStatus: () => fetchApi<GitHubStatusResponse>("/github/status"),
+
+  disconnect: () =>
+    fetchApi<{ success: true }>("/github/disconnect", {
+      method: "POST",
+    }),
+
+  getRepos: (params?: { page?: number; perPage?: number; search?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set("page", params.page.toString());
+    if (params?.perPage) searchParams.set("per_page", params.perPage.toString());
+    if (params?.search) searchParams.set("search", params.search);
+    const query = searchParams.toString();
+    return fetchApi<GitHubReposResponse>(`/github/repos${query ? `?${query}` : ""}`);
+  },
+
+  getBranches: (owner: string, repo: string) =>
+    fetchApi<{ branches: BranchInfo[] }>(`/github/repos/${owner}/${repo}/branches`),
+
+  validateRepo: (owner: string, repo: string) =>
+    fetchApi<{ valid: boolean; metadata?: RepoMetadata; error?: string }>(
+      `/github/repos/${owner}/${repo}/validate`
+    ),
 };

@@ -47,3 +47,21 @@ export const SERVER_DISK_WARNING_PERCENT = 90;
 
 // API
 export const API_BASE_PATH = "/api";
+
+export const SKILLS_CATALOG = [
+  {
+    id: "github-pr",
+    name: "GitHub PR Helper",
+    description: "Help prepare changes for pull requests and write summaries.",
+  },
+  {
+    id: "code-indexing",
+    name: "Code Indexing",
+    description: "Enable knowledge base indexing and retrieval workflows.",
+  },
+  {
+    id: "prompt-bridge",
+    name: "Interactive Prompt Bridge",
+    description: "Support interactive prompts routed through the UI.",
+  },
+] as const;

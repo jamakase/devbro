@@ -10,7 +10,8 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo check-types"
+    "check-types": "turbo check-types",
+    "db:setup": "pnpm --filter @agent-sandbox/server db:push"
   },
   "devDependencies": {
     "prettier": "^3.2.5",

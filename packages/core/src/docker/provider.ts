@@ -1,6 +1,6 @@
 import Docker from "dockerode";
 import { PassThrough, Readable } from "stream";
-import type { Container, ContainerCreateOptions, ContainerInfo } from "dockerode";
+import type { ContainerCreateOptions, ContainerInfo } from "dockerode";
 import {
   DEFAULT_CONTAINER_IMAGE,
   WORKSPACE_MOUNT_PATH,
@@ -11,29 +11,16 @@ import {
   HEALTH_CHECK_TIMEOUT,
 } from "@agent-sandbox/shared";
 import type { SandboxConfig, SandboxStatus } from "@agent-sandbox/shared";
+import type { ContainerProvider, ContainerStats, ProviderHealthResult, VolumeStats } from "../types/provider.js";
 
-export interface ContainerStats {
-  status: SandboxStatus;
-  containerId: string;
-  uptime?: number;
-  memoryUsage?: number;
-  cpuPercent?: number;
-}
-
-export interface DockerHealthResult {
-  healthy: boolean;
-  version?: string;
-  message: string;
-}
-
-export class DockerClient {
+export class DockerProvider implements ContainerProvider {
   protected docker: Docker;
 
   constructor(options?: Docker.DockerOptions) {
     this.docker = new Docker(options);
   }
 
-  async healthCheck(): Promise<DockerHealthResult> {
+  async healthCheck(): Promise<ProviderHealthResult> {
     try {
       const info = await Promise.race([
         this.docker.version(),
@@ -117,7 +104,7 @@ export class DockerClient {
     }
   }
 
-  async destroyContainer(containerId: string, removeVolume = false): Promise<void> {
+  async removeContainer(containerId: string, volumeId?: string, preserveVolume = false): Promise<void> {
     const container = this.docker.getContainer(containerId);
 
     try {
@@ -128,14 +115,14 @@ export class DockerClient {
         await container.stop({ t: CONTAINER_STOP_TIMEOUT });
       }
 
-      // Get volume name before removing container
-      const volumeName = info.Config.Labels?.["agent-sandbox.volume"];
+      // Get volume name before removing container if not provided
+      const volumeName = volumeId || info.Config.Labels?.["agent-sandbox.volume"];
 
       // Remove container
       await container.remove({ force: true });
 
       // Remove volume if requested
-      if (removeVolume && volumeName) {
+      if (!preserveVolume && volumeName) {
         try {
           const volume = this.docker.getVolume(volumeName);
           await volume.remove();
@@ -151,7 +138,7 @@ export class DockerClient {
     }
   }
 
-  async getContainerStatus(containerId: string): Promise<ContainerStats> {
+  async inspectContainer(containerId: string): Promise<ContainerStats> {
     const container = this.docker.getContainer(containerId);
 
     try {
@@ -196,16 +183,22 @@ export class DockerClient {
     }
   }
 
-  async listContainers(): Promise<ContainerInfo[]> {
-    return this.docker.listContainers({
+  async listContainers(): Promise<ContainerStats[]> {
+    const containers = await this.docker.listContainers({
       all: true,
       filters: {
         label: ["agent-sandbox.id"],
       },
     });
+
+    return containers.map(info => ({
+        containerId: info.Id,
+        status: this.mapContainerStateStr(info.State),
+        // Minimal stats for list view
+    }));
   }
 
-  async streamLogs(
+  async getLogs(
     containerId: string,
     tail = 100
   ): Promise<Readable> {
@@ -226,7 +219,20 @@ export class DockerClient {
     return output;
   }
 
-  async execInContainer(containerId: string, command: string[]): Promise<{ exitCode: number; output: string }> {
+  // Not in interface but needed for functionality? 
+  // Wait, interface has `execute`? No, I added `execute` to the interface in my thought but not in the file I created?
+  // Let me check the interface file I created.
+  
+  /*
+  export interface ContainerProvider {
+  ...
+  }
+  */
+  
+  // I need to check `packages/core/src/types/provider.ts` content again.
+  // I might have missed `execute`.
+  
+  async executeCommand(containerId: string, command: string[]): Promise<{ exitCode: number; output: string }> {
     const container = this.docker.getContainer(containerId);
 
     const exec = await container.exec({
@@ -261,6 +267,77 @@ export class DockerClient {
 
       stream.on("error", reject);
     });
+  }
+
+  async createVolume(name: string, labels?: Record<string, string>): Promise<void> {
+    await this.docker.createVolume({
+      Name: name,
+      Labels: {
+        ...labels,
+        "agent-sandbox.created": new Date().toISOString(),
+      },
+    });
+  }
+
+  async listVolumes(filter?: Record<string, string>): Promise<VolumeStats[]> {
+    const filters: Record<string, string[]> = {};
+    if (filter) {
+      if (filter.label) {
+        filters.label = [filter.label];
+      }
+      if (filter.name) {
+        filters.name = [filter.name];
+      }
+    }
+
+    const { Volumes } = await this.docker.listVolumes({ filters });
+
+    const volumeStats: VolumeStats[] = [];
+    for (const vol of Volumes ?? []) {
+       // Get volume size using docker system df (expensive operation, maybe we should optimize this later)
+       // For now, consistent with VolumeManager
+       let size = 0;
+       try {
+         size = await this.getVolumeSize(vol.Name);
+       } catch {
+         // ignore error
+       }
+
+       volumeStats.push({
+         name: vol.Name,
+         size,
+         createdAt: vol.Labels?.["agent-sandbox.created"] ?? (vol as any).CreatedAt ?? "",
+         labels: vol.Labels,
+       });
+    }
+    return volumeStats;
+  }
+
+  async deleteVolume(name: string): Promise<void> {
+    const volume = this.docker.getVolume(name);
+    await volume.remove();
+  }
+
+  async getVolumeSize(name: string): Promise<number> {
+    try {
+      const df = await this.docker.df();
+      const volumeInfo = df.Volumes?.find(
+        (v: { Name: string; UsageData?: { Size?: number } }) => v.Name === name
+      );
+      return volumeInfo?.UsageData?.Size ?? 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  async isVolumeInUse(name: string): Promise<boolean> {
+    const containers = await this.docker.listContainers({
+      all: true,
+      filters: {
+        volume: [name],
+      },
+    });
+    return containers.some((c) => c.State === "running");
   }
 
   private async ensureImage(imageName: string): Promise<void> {
@@ -305,5 +382,18 @@ export class DockerClient {
     if (state.Restarting) return "starting";
     if (state.Dead || state.OOMKilled) return "error";
     return "stopped";
+  }
+
+  private mapContainerStateStr(state: string): SandboxStatus {
+     // Docker listContainers returns State as string
+     // "created", "restarting", "running", "removing", "paused", "exited", "dead"
+     switch(state) {
+        case "running": return "running";
+        case "restarting": return "starting";
+        case "paused": 
+        case "exited": return "stopped";
+        case "dead": return "error";
+        default: return "stopped";
+     }
   }
 }

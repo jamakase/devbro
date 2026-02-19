@@ -10,6 +10,8 @@ export type SandboxStatus =
 export type CLITool = "claude-code" | "opencode";
 
 export interface SandboxConfig {
+  image?: string;
+  env?: Record<string, string>;
   memoryLimit?: string; // e.g., "2g"
   cpuLimit?: number; // e.g., 2
   githubRepo?: string;

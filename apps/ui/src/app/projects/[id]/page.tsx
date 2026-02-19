@@ -10,6 +10,7 @@ import type { Project, Task } from "@agent-sandbox/shared";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RepoPicker } from "@/components/repo-picker";
 
 async function fetchProject(id: string): Promise<Project> {
   const response = await fetch(`/api/projects/${id}`);
@@ -24,6 +25,7 @@ async function fetchTasks(projectId: string): Promise<Task[]> {
 }
 
 const statusColors = {
+  pending: "bg-orange-500",
   creating: "bg-yellow-500",
   running: "bg-green-500",
   stopped: "bg-gray-500",
@@ -40,19 +42,45 @@ export default function ProjectDetailPage() {
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [taskName, setTaskName] = useState("");
   const [cliTool, setCliTool] = useState<"claude" | "opencode">("claude");
+  const [repoSelection, setRepoSelection] = useState<{
+    repoSource: "github" | "custom";
+    repoUrl: string;
+    branch?: string;
+    githubRepoId?: number;
+    githubRepoFullName?: string;
+  } | null>(null);
 
-  const { data: project, isLoading: projectLoading } = useQuery({
+  const {
+    data: project,
+    isLoading: projectLoading,
+    isError: isProjectError,
+    error: projectError,
+    refetch: refetchProject,
+  } = useQuery({
     queryKey: ["project", projectId],
     queryFn: () => fetchProject(projectId),
   });
 
-  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+  const {
+    data: tasks = [],
+    isLoading: tasksLoading,
+    isError: isTasksError,
+    error: tasksError,
+    refetch: refetchTasks,
+  } = useQuery({
     queryKey: ["tasks", projectId],
     queryFn: () => fetchTasks(projectId),
   });
 
   const createTaskMutation = useMutation({
-    mutationFn: async (data: { name: string; cliTool: "claude" | "opencode" }) => {
+    mutationFn: async (data: { 
+      name: string; 
+      cliTool: "claude" | "opencode";
+      config?: {
+        githubRepo?: string;
+        githubBranch?: string;
+      };
+    }) => {
       const response = await fetch(`/api/projects/${projectId}/tasks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -65,31 +93,57 @@ export default function ProjectDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
       setShowCreateTask(false);
       setTaskName("");
+      setRepoSelection(null);
     },
   });
 
   if (projectLoading) {
     return (
-      <div className="p-6">
+      <div>
         <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+      </div>
+    );
+  }
+
+  if (isProjectError) {
+    return (
+      <div className="space-y-4">
+        <Link
+          href="/projects"
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Projects
+        </Link>
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
+          <h3 className="mb-2 text-lg font-medium text-destructive">
+            Failed to load project
+          </h3>
+          <p className="mb-4 text-sm text-muted-foreground">
+            {(projectError as Error | null)?.message ?? "Please try again."}
+          </p>
+          <Button variant="outline" onClick={() => refetchProject()}>
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }
 
   if (!project) {
     return (
-      <div className="p-6">
+      <div>
         <p>Project not found</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
+    <div className="space-y-6">
+      <div className="space-y-4">
         <Link
           href="/projects"
-          className="mb-4 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Projects
@@ -117,7 +171,14 @@ export default function ProjectDetailPage() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                createTaskMutation.mutate({ name: taskName, cliTool });
+                createTaskMutation.mutate({ 
+                  name: taskName, 
+                  cliTool,
+                  config: repoSelection ? {
+                    githubRepo: repoSelection.repoUrl,
+                    githubBranch: repoSelection.branch,
+                  } : undefined,
+                });
               }}
               className="space-y-4"
             >
@@ -131,6 +192,15 @@ export default function ProjectDetailPage() {
                   required
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label>Repository (Optional)</Label>
+                <RepoPicker 
+                  onSelect={setRepoSelection}
+                  selectedRepo={repoSelection || undefined}
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label>CLI Tool</Label>
                 <div className="flex gap-2">
@@ -167,9 +237,18 @@ export default function ProjectDetailPage() {
         </Card>
       )}
 
-      <h2 className="mb-4 text-lg font-semibold">Tasks</h2>
+      <h3 className="text-lg font-semibold">Tasks</h3>
 
-      {tasksLoading ? (
+      {isTasksError ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
+          <p className="mb-4 text-sm text-muted-foreground">
+            {(tasksError as Error | null)?.message ?? "Failed to load tasks."}
+          </p>
+          <Button variant="outline" onClick={() => refetchTasks()}>
+            Retry
+          </Button>
+        </div>
+      ) : tasksLoading ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-16 animate-pulse rounded-lg border bg-muted" />

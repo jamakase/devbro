@@ -4,7 +4,7 @@ import { TaskRepository, ProjectRepository } from "@agent-sandbox/server";
 import { requireAuth } from "@/lib/auth-server";
 
 const createTaskSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100),
+  name: z.string().max(100).optional(),
   cliTool: z.enum(["claude", "opencode"]),
   serverId: z.string().optional(),
   config: z
@@ -16,6 +16,45 @@ const createTaskSchema = z.object({
       anthropicApiKey: z.string().optional(),
       githubToken: z.string().optional(),
       prompt: z.string().optional(),
+      skills: z
+        .object({
+          enabledSkillIds: z.array(z.string().min(1)).max(100).optional(),
+        })
+        .optional(),
+      mcp: z
+        .object({
+          mcpServers: z.record(
+            z.string().min(1),
+            z.object({
+              command: z.string().min(1),
+              args: z.array(z.string()).optional(),
+              env: z.record(z.string(), z.string()).optional(),
+            })
+          ),
+        })
+        .optional(),
+      bootstrap: z
+        .object({
+          pullSpecs: z.boolean().optional(),
+          specsRepoUrl: z.string().optional(),
+          specsBranch: z.string().optional(),
+          enableKnowledgeBase: z.boolean().optional(),
+          buildKnowledgeBaseIndex: z.boolean().optional(),
+          enabledSkillIds: z.array(z.string().min(1)).max(100).optional(),
+          mcpConfig: z
+            .object({
+              mcpServers: z.record(
+                z.string().min(1),
+                z.object({
+                  command: z.string().min(1),
+                  args: z.array(z.string()).optional(),
+                  env: z.record(z.string(), z.string()).optional(),
+                })
+              ),
+            })
+            .optional(),
+        })
+        .optional(),
     })
     .optional(),
 });
@@ -76,7 +115,12 @@ export async function POST(
       );
     }
 
-    const task = await taskRepo.create(projectId, validation.data);
+    const taskData = {
+      ...validation.data,
+      name: validation.data.name || validation.data.config?.githubRepo?.split('/').pop() || "Untitled Task",
+    };
+
+    const task = await taskRepo.create(projectId, taskData);
     return NextResponse.json(task, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {

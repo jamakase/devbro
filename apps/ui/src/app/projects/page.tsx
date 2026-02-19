@@ -18,7 +18,13 @@ export default function ProjectsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: projects = [], isLoading } = useQuery({
+  const {
+    data: projects = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["projects"],
     queryFn: fetchProjects,
   });
@@ -43,11 +49,11 @@ export default function ProjectsPage() {
   });
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Projects</h1>
-          <p className="text-muted-foreground">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-bold">Projects</h2>
+          <p className="text-sm text-muted-foreground">
             Manage your coding projects and AI-assisted tasks
           </p>
         </div>
@@ -57,7 +63,19 @@ export default function ProjectsPage() {
         </Button>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
+          <h3 className="mb-2 text-lg font-medium text-destructive">
+            Failed to load projects
+          </h3>
+          <p className="mb-4 text-sm text-muted-foreground">
+            {(error as Error | null)?.message ?? "Please try again."}
+          </p>
+          <Button variant="outline" onClick={() => refetch()}>
+            Retry
+          </Button>
+        </div>
+      ) : isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <div

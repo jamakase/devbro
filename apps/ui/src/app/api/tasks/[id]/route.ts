@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { TaskRepository } from "@agent-sandbox/server";
-import { DockerClient } from "@agent-sandbox/core";
+import { DockerProvider } from "@agent-sandbox/core";
 import { requireAuth } from "@/lib/auth-server";
 
 const taskRepo = new TaskRepository();
-const dockerClient = new DockerClient();
+const dockerProvider = new DockerProvider();
 
 // GET /api/tasks/[id] - Get task details
 export async function GET(
@@ -49,7 +49,7 @@ export async function DELETE(
 
     if (task.containerId) {
       try {
-        await dockerClient.destroyContainer(task.containerId, true); // true to remove volume
+        await dockerProvider.removeContainer(task.containerId, undefined, false); // false to remove volume
       } catch (error) {
         console.error("Error destroying container:", error);
         // Continue to delete task from DB

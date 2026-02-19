@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { TaskRepository } from "@agent-sandbox/server";
-import { DockerClient } from "@agent-sandbox/core";
+import { DockerProvider } from "@agent-sandbox/core";
 import { requireAuth } from "@/lib/auth-server";
 
 const taskRepo = new TaskRepository();
-const dockerClient = new DockerClient();
+const dockerProvider = new DockerProvider();
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -19,7 +19,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (!task.containerId) {
       return NextResponse.json({ error: "Container not started" }, { status: 400 });
     }
-    const output = await dockerClient.streamLogs(task.containerId, tail);
+    const output = await dockerProvider.getLogs(task.containerId, tail);
     let buffer = "";
     await new Promise<void>((resolve, reject) => {
       output.on("data", (chunk) => {

@@ -83,6 +83,15 @@ export class ProjectRepository {
     return result.length > 0;
   }
 
+  async findByNameAndUser(name: string, userId: string): Promise<Project | null> {
+    const result = await db
+      .select()
+      .from(projects)
+      .where(and(eq(projects.name, name), eq(projects.userId, userId)));
+
+    return result[0] ?? null;
+  }
+
   async existsByNameAndUser(name: string, userId: string): Promise<boolean> {
     const result = await db
       .select({ id: projects.id })

@@ -63,6 +63,15 @@ export class TaskRepository {
     return result.map((row) => this.mapRow(row.task));
   }
 
+  async findPendingByServerId(serverId: string): Promise<Task[]> {
+    const result = await db
+      .select()
+      .from(tasks)
+      .where(and(eq(tasks.serverId, serverId), eq(tasks.status, "pending")))
+      .orderBy(desc(tasks.createdAt));
+    return result.map(this.mapRow);
+  }
+
   async update(
     id: string,
     updates: Partial<{

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { healthApi } from "@/lib/api";
+import { healthApi, githubApi } from "@/lib/api";
+import { useSession, linkGitHubAccount } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,18 +22,26 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, Github, Loader2 } from "lucide-react";
 
 export default function SettingsPage() {
   const [anthropicKey, setAnthropicKey] = useState("");
   const [githubToken, setGithubToken] = useState("");
   const [defaultMemory, setDefaultMemory] = useState("2g");
   const [defaultCpu, setDefaultCpu] = useState("2");
+  const [isConnectingGitHub, setIsConnectingGitHub] = useState(false);
 
+  const { data: session } = useSession();
   const { data: health } = useQuery({
     queryKey: ["health"],
     queryFn: healthApi.check,
     refetchInterval: 30000, // Check every 30 seconds
+  });
+
+  const { data: githubStatus, refetch: refetchGitHubStatus } = useQuery({
+    queryKey: ["github-status"],
+    queryFn: githubApi.getStatus,
+    enabled: !!session?.user,
   });
 
   // Load settings from localStorage on mount
@@ -62,9 +71,51 @@ export default function SettingsPage() {
     toast({ title: "Settings saved" });
   };
 
+  const handleConnectGitHub = async () => {
+    setIsConnectingGitHub(true);
+    try {
+      const result = await linkGitHubAccount();
+      if (result.error) {
+        toast({
+          title: "Failed to connect GitHub",
+          description: result.error.message || "Please try again",
+          variant: "destructive",
+        });
+        setIsConnectingGitHub(false);
+      }
+      // On success, OAuth redirect will happen
+    } catch (error) {
+      toast({
+        title: "Failed to connect GitHub",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+      setIsConnectingGitHub(false);
+    }
+  };
+
+  const handleDisconnectGitHub = async () => {
+    try {
+      await githubApi.disconnect();
+      toast({ title: "GitHub disconnected" });
+      refetchGitHubStatus();
+    } catch (error) {
+      toast({
+        title: "Failed to disconnect GitHub",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <div className="space-y-6 max-w-2xl">
-      <h2 className="text-2xl font-bold">Settings</h2>
+    <div className="mx-auto w-full max-w-2xl space-y-6">
+      <div className="space-y-1">
+        <h2 className="text-2xl font-bold">Settings</h2>
+        <p className="text-sm text-muted-foreground">
+          Configure integrations and defaults for new runs.
+        </p>
+      </div>
 
       <Card>
         <CardHeader>
@@ -87,6 +138,62 @@ export default function SettingsPage() {
               </>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>GitHub Connection</CardTitle>
+          <CardDescription>
+            Connect your GitHub account to access repositories
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {githubStatus?.connected ? (
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="flex items-center gap-3">
+                <Github className="h-5 w-5" />
+                <div>
+                  <p className="font-medium">Connected to GitHub</p>
+                  <p className="text-sm text-muted-foreground">
+                    @{githubStatus.username}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDisconnectGitHub}
+              >
+                Disconnect
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <Github className="h-5 w-5" />
+                <span>Not connected to GitHub</span>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleConnectGitHub}
+                disabled={isConnectingGitHub}
+              >
+                {isConnectingGitHub ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <Github className="mr-2 h-4 w-4" />
+                    Connect GitHub
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

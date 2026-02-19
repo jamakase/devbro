@@ -5,4 +5,5 @@ export * from "./types/message.js";
 export * from "./types/server.js";
 export * from "./types/sandbox.js";
 export * from "./types/api.js";
+export * from "./types/github.js";
 export * from "./constants.js";

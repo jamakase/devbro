@@ -1,60 +1,38 @@
 ## ADDED Requirements
 
 ### Requirement: Install AI CLI tool
-The system SHALL install the selected AI coding CLI tool inside the sandbox container.
+The system SHALL install and invoke a first-party agent runner inside the sandbox container to execute the selected agent backend.
 
-#### Scenario: Install Claude Code
-- **WHEN** user selects "claude-code" as the CLI tool
-- **THEN** system runs `npx claude-code@latest` to install and verify installation
+#### Scenario: Install runner
+- **WHEN** a task container is created for execution
+- **THEN** system installs the runner package in the container before task execution begins
 
-#### Scenario: Install OpenCode
-- **WHEN** user selects "opencode" as the CLI tool
-- **THEN** system runs `npx opencode@latest` to install and verify installation
+#### Scenario: Execute selected backend
+- **WHEN** user selects an agent backend for a task
+- **THEN** system invokes the runner with that backend selection and the task prompt
 
-#### Scenario: Installation failure with fallback
-- **WHEN** latest version installation fails
-- **THEN** system attempts installation of last known stable version and reports status
+#### Scenario: Runner installation failure
+- **WHEN** runner installation fails
+- **THEN** system reports a user-visible error and does not attempt task execution
 
 ### Requirement: Configure CLI environment
-The system SHALL set up required environment variables for the CLI tool to function.
+The system SHALL configure the runner execution environment with required credentials and workspace context.
 
 #### Scenario: Set API keys
-- **WHEN** user provides API key for the selected CLI tool
-- **THEN** system sets appropriate environment variable (ANTHROPIC_API_KEY or equivalent)
+- **WHEN** user provides an API key required by the selected backend
+- **THEN** system sets the appropriate environment variable for the runner execution
 
 #### Scenario: Configure working directory
 - **WHEN** sandbox starts with cloned repository
-- **THEN** system sets CLI working directory to /workspace
+- **THEN** system configures runner working directory to /workspace
 
 ### Requirement: Select CLI tool per sandbox
-The system SHALL allow users to choose which CLI tool to use for each sandbox.
+The system SHALL allow users to choose which agent backend to use for each sandbox task.
 
-#### Scenario: Choose CLI during sandbox creation
-- **WHEN** user creates new sandbox
-- **THEN** system presents choice between Claude Code and OpenCode
+#### Scenario: Choose backend during sandbox creation
+- **WHEN** user creates new sandbox task
+- **THEN** system presents a choice of available agent backends
 
-#### Scenario: Change CLI tool on existing sandbox
-- **WHEN** user requests CLI change on stopped sandbox
-- **THEN** system installs new CLI tool on next start, preserving workspace
-
-### Requirement: Verify CLI installation
-The system SHALL confirm successful CLI installation before marking sandbox as ready.
-
-#### Scenario: Successful verification
-- **WHEN** CLI tool installs successfully
-- **THEN** system runs version check and confirms tool is operational
-
-#### Scenario: Failed verification
-- **WHEN** CLI tool fails verification
-- **THEN** system marks sandbox as "setup_failed" with error details
-
-### Requirement: Run CLI task
-The system SHALL execute a user-specified task using the installed CLI tool.
-
-#### Scenario: Start task with prompt
-- **WHEN** user provides task description for sandbox
-- **THEN** system invokes CLI tool with the task prompt and streams output
-
-#### Scenario: Run task in background
-- **WHEN** user starts task with background=true flag
-- **THEN** system runs task detached and provides log streaming endpoint
+#### Scenario: Change backend on existing sandbox
+- **WHEN** user updates a sandbox task backend selection
+- **THEN** system uses the updated backend for subsequent task executions

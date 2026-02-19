@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@agent-sandbox/shared": "workspace:*",
+    "@kubernetes/client-node": "^1.4.0",
     "dockerode": "^4.0.2",
     "ssh2": "^1.15.0"
   },

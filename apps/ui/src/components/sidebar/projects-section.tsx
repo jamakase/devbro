@@ -34,7 +34,7 @@ export function ProjectsSection() {
           <ChevronRight className="h-4 w-4" />
         )}
         <FolderGit2 className="h-4 w-4" />
-        <span className="flex-1 text-left">Projects</span>
+        <span className="flex-1 text-left">Repositories</span>
         <span className="text-xs">{projects.length}</span>
       </button>
 
@@ -46,24 +46,13 @@ export function ProjectsSection() {
             </p>
           ) : projects.length === 0 ? (
             <p className="px-3 py-2 text-xs text-muted-foreground">
-              No projects yet
+              No repositories yet
             </p>
           ) : (
             projects.map((project) => (
               <ProjectItem key={project.id} project={project} />
             ))
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2 text-xs text-muted-foreground"
-            asChild
-          >
-            <a href="/projects?new=true">
-              <Plus className="h-3 w-3" />
-              New Project
-            </a>
-          </Button>
         </div>
       )}
     </div>

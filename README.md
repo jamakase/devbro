@@ -139,7 +139,7 @@ Projects organize your AI coding tasks:
 Tasks are individual AI coding sessions:
 
 1. Open a project and click "New Task"
-2. Select the AI CLI tool (Claude Code or OpenCode)
+2. Select the agent backend (runner CLI or SDK)
 3. Optionally select a remote server
 4. Start the task to launch the container
 

@@ -12,6 +12,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow agent API routes (they handle their own token authentication)
+  if (pathname.startsWith("/api/servers/")) {
+    return NextResponse.next();
+  }
+
   // Check for session cookie (better-auth uses this)
   const sessionCookie = request.cookies.get("better-auth.session_token");
 

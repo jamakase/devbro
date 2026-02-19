@@ -6,6 +6,7 @@ import type {
   Server,
   ServerStatus,
   ServerAuthType,
+  ServerType,
   CreateServerInput,
   ServerWithStats,
 } from "@agent-sandbox/shared";
@@ -21,11 +22,14 @@ export class ServerRepository {
         id,
         userId,
         name: input.name,
+        type: input.type ?? "ssh",
         host: input.host,
         port: input.port ?? 22,
         username: input.username,
         authType: input.authType,
         privateKey: input.privateKey ?? null,
+        token: input.token ?? null,
+        metadata: input.metadata ?? null,
         createdAt: now,
         updatedAt: now,
       })
@@ -96,11 +100,14 @@ export class ServerRepository {
     userId: string,
     updates: Partial<{
       name: string;
+      type: ServerType;
       host: string;
       port: number;
-      username: string;
-      authType: ServerAuthType;
+      username: string | null;
+      authType: ServerAuthType | null;
       privateKey: string | null;
+      token: string | null;
+      metadata: Record<string, any> | null;
       status: ServerStatus;
       isDefault: boolean;
       errorMessage: string | null;
@@ -140,11 +147,14 @@ export class ServerRepository {
       id: row.id,
       userId: row.userId,
       name: row.name,
+      type: (row.type as ServerType) ?? "ssh",
       host: row.host,
-      port: row.port,
-      username: row.username,
-      authType: row.authType as ServerAuthType,
+      port: row.port ?? undefined,
+      username: row.username ?? undefined,
+      authType: (row.authType as ServerAuthType) ?? undefined,
       privateKey: row.privateKey ?? undefined,
+      token: row.token ?? undefined,
+      metadata: (row.metadata as Record<string, any>) ?? null,
       status: row.status as ServerStatus,
       isDefault: row.isDefault,
       errorMessage: row.errorMessage,

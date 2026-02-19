@@ -1,5 +1,5 @@
-import Docker from "dockerode";
 import { VOLUME_NAME_PREFIX, VOLUME_SIZE_WARNING_THRESHOLD } from "@agent-sandbox/shared";
+import type { ContainerProvider } from "../types/provider.js";
 
 export interface VolumeInfo {
   name: string;
@@ -17,54 +17,42 @@ export interface VolumeCleanupResult {
 }
 
 export class VolumeManager {
-  private docker: Docker;
+  private provider: ContainerProvider;
 
-  constructor(docker: Docker) {
-    this.docker = docker;
+  constructor(provider: ContainerProvider) {
+    this.provider = provider;
   }
 
   async createVolume(sandboxId: string): Promise<string> {
     const volumeName = `${VOLUME_NAME_PREFIX}${sandboxId}`;
 
-    await this.docker.createVolume({
-      Name: volumeName,
-      Labels: {
-        "agent-sandbox.id": sandboxId,
-        "agent-sandbox.created": new Date().toISOString(),
-      },
+    await this.provider.createVolume(volumeName, {
+      "agent-sandbox.id": sandboxId,
     });
 
     return volumeName;
   }
 
   async listVolumes(knownSandboxIds: Set<string>): Promise<VolumeInfo[]> {
-    const { Volumes } = await this.docker.listVolumes({
-      filters: {
-        name: [VOLUME_NAME_PREFIX],
-      },
+    const volumes = await this.provider.listVolumes({
+      name: VOLUME_NAME_PREFIX,
     });
 
     const volumeInfos: VolumeInfo[] = [];
 
-    for (const vol of Volumes ?? []) {
-      if (!vol.Name.startsWith(VOLUME_NAME_PREFIX)) continue;
+    for (const vol of volumes) {
+      if (!vol.name.startsWith(VOLUME_NAME_PREFIX)) continue;
 
-      const sandboxId = vol.Name.slice(VOLUME_NAME_PREFIX.length);
+      const sandboxId = vol.name.slice(VOLUME_NAME_PREFIX.length);
       const isOrphaned = !knownSandboxIds.has(sandboxId);
 
-      // Get volume size using docker system df
-      const size = await this.getVolumeSize(vol.Name);
-
       volumeInfos.push({
-        name: vol.Name,
+        name: vol.name,
         sandboxId: isOrphaned ? null : sandboxId,
-        size,
-        createdAt:
-          vol.Labels?.["agent-sandbox.created"] ??
-          (vol as { CreatedAt?: string }).CreatedAt ??
-          "",
+        size: vol.size,
+        createdAt: vol.createdAt,
         isOrphaned,
-        sizeWarning: size > VOLUME_SIZE_WARNING_THRESHOLD,
+        sizeWarning: vol.size > VOLUME_SIZE_WARNING_THRESHOLD,
       });
     }
 
@@ -73,14 +61,13 @@ export class VolumeManager {
 
   async deleteVolume(volumeName: string, checkInUse = true): Promise<void> {
     if (checkInUse) {
-      const inUse = await this.isVolumeInUse(volumeName);
+      const inUse = await this.provider.isVolumeInUse(volumeName);
       if (inUse) {
         throw new Error("Volume is in use by running sandbox");
       }
     }
 
-    const volume = this.docker.getVolume(volumeName);
-    await volume.remove();
+    await this.provider.deleteVolume(volumeName);
   }
 
   async getOrphanedVolumes(knownSandboxIds: Set<string>): Promise<VolumeInfo[]> {
@@ -111,28 +98,5 @@ export class VolumeManager {
 
     return result;
   }
-
-  private async isVolumeInUse(volumeName: string): Promise<boolean> {
-    const containers = await this.docker.listContainers({
-      all: true,
-      filters: {
-        volume: [volumeName],
-      },
-    });
-
-    return containers.some((c) => c.State === "running");
-  }
-
-  private async getVolumeSize(volumeName: string): Promise<number> {
-    try {
-      // Use docker system df to get volume sizes
-      const df = await this.docker.df();
-      const volumeInfo = df.Volumes?.find(
-        (v: { Name: string; UsageData?: { Size?: number } }) => v.Name === volumeName
-      );
-      return volumeInfo?.UsageData?.Size ?? 0;
-    } catch {
-      return 0;
-    }
-  }
 }
+

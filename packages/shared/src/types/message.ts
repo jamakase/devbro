@@ -8,6 +8,25 @@ export interface ToolCall {
   output?: string;
 }
 
+export interface PromptOption {
+  id: string;
+  label: string;
+  value: string;
+}
+
+export interface PromptToolCallInput {
+  promptId: string;
+  question: string;
+  options: PromptOption[];
+  expiresAt?: string;
+}
+
+export interface PromptAnswerToolCallInput {
+  promptId: string;
+  toolCallId: string;
+  answer: string;
+}
+
 export interface Message {
   id: string;
   taskId: string;

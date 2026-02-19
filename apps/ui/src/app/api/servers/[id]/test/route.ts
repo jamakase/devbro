@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ServerRepository } from "@agent-sandbox/server";
-import { RemoteDockerClient } from "@agent-sandbox/core";
+import { RemoteDockerProvider } from "@agent-sandbox/core";
 import { requireAuth } from "@/lib/auth-server";
 import type { ApiResponse, TestServerResponse } from "@agent-sandbox/shared";
 
@@ -31,12 +31,16 @@ export async function POST(
     await serverRepo.update(id, userId, { status: "connecting" });
 
     try {
-      const remoteClient = new RemoteDockerClient({
+      if (!server.username) {
+        throw new Error("Username is required for SSH connection");
+      }
+
+      const remoteClient = new RemoteDockerProvider({
         host: server.host,
-        port: server.port,
+        port: server.port ?? 22,
         username: server.username,
-        authType: server.authType,
-        privateKey: server.privateKey,
+        authType: (server.authType as any) || "ssh-agent",
+        privateKey: server.privateKey || undefined,
       });
 
       await remoteClient.connect();

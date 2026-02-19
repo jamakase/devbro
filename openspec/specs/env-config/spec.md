@@ -48,13 +48,17 @@ The system SHALL require the following environment variables.
 - **WHEN** application starts
 - **THEN** BETTER_AUTH_SECRET must be string of at least 32 characters
 
+#### Scenario: GitHub OAuth configuration
+- **WHEN** GitHub integration is enabled
+- **THEN** GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set
+
 #### Scenario: App URL configuration
 - **WHEN** application builds
 - **THEN** NEXT_PUBLIC_APP_URL must be valid URL
 
 ### Requirement: Environment schema location
-The system SHALL define env schemas in packages/ui/src/env.ts.
+The system SHALL define env schemas in apps/ui/src/env.ts.
 
 #### Scenario: Single source of truth
 - **WHEN** env configuration is needed
-- **THEN** import from packages/ui/src/env.ts provides all validated vars
+- **THEN** import from apps/ui/src/env.ts provides all validated vars

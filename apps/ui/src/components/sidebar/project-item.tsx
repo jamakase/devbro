@@ -4,7 +4,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Folder } from "lucide-react";
+import { ChevronDown, ChevronRight, FolderGit2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TaskItem } from "./task-item";
 import type { ProjectWithTaskCount, Task } from "@agent-sandbox/shared";
@@ -55,7 +55,7 @@ export function ProjectItem({ project }: ProjectItemProps) {
               : "text-muted-foreground hover:bg-muted hover:text-foreground"
           )}
         >
-          <Folder className="h-4 w-4" />
+          <FolderGit2 className="h-4 w-4" />
           <span className="flex-1 truncate">{project.name}</span>
           {project.taskCount > 0 && (
             <span className="text-xs opacity-60">{project.taskCount}</span>

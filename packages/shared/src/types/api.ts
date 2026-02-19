@@ -1,5 +1,7 @@
 import type { Sandbox, SandboxWithStats, CreateSandboxInput, CLITool } from "./sandbox.js";
 import type { Server, ServerWithStats, CreateServerInput, ServerTestResult } from "./server.js";
+import type { CliTool } from "./task.js";
+import type { McpConfig } from "./task.js";
 
 // Generic API response wrapper
 export interface ApiResponse<T> {
@@ -45,6 +47,32 @@ export interface RunTaskResponse {
   success: boolean;
   exitCode: number;
   output: string;
+}
+
+export interface CreateTaskRequest {
+  name?: string;
+  cliTool: CliTool;
+  serverId?: string;
+  config?: {
+    githubRepo?: string;
+    githubBranch?: string;
+    memoryLimit?: string;
+    cpuLimit?: string;
+    anthropicApiKey?: string;
+    githubToken?: string;
+    prompt?: string;
+    skills?: { enabledSkillIds?: string[] };
+    mcp?: McpConfig;
+    bootstrap?: {
+      pullSpecs?: boolean;
+      specsRepoUrl?: string;
+      specsBranch?: string;
+      enableKnowledgeBase?: boolean;
+      buildKnowledgeBaseIndex?: boolean;
+      enabledSkillIds?: string[];
+      mcpConfig?: McpConfig;
+    };
+  };
 }
 
 export interface StartTaskRequest {

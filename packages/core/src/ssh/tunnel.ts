@@ -2,6 +2,8 @@ import { Client, type ConnectConfig } from "ssh2";
 import { createServer, type Server as NetServer, type Socket } from "net";
 import { SSH_KEEPALIVE_INTERVAL, SSH_RECONNECT_DELAYS, DOCKER_SOCKET_UNIX } from "@agent-sandbox/shared";
 import type { ServerAuthType } from "@agent-sandbox/shared";
+import { DockerProvider } from "../docker/provider.js";
+import Docker from "dockerode";
 
 export interface TunnelConfig {
   host: string;
@@ -190,33 +192,43 @@ export class SSHTunnel {
   }
 }
 
-// RemoteDockerClient that uses SSH tunnel
-import { DockerClient } from "../docker/client.js";
-
-export class RemoteDockerClient extends DockerClient {
+export class RemoteDockerProvider extends DockerProvider {
   private tunnel: SSHTunnel;
 
   constructor(tunnelConfig: TunnelConfig) {
-    // Will set docker options after tunnel connects
     super();
     this.tunnel = new SSHTunnel(tunnelConfig);
   }
 
-  async connect(): Promise<void> {
-    const localPort = await this.tunnel.connect();
+  // Override healthCheck to ensure tunnel is connected
+  async healthCheck() {
+    try {
+      if (!this.tunnel.getLocalPort()) {
+        await this.connect();
+      }
+      return super.healthCheck();
+    } catch (error) {
+       const message = error instanceof Error ? error.message : "Unknown error";
+       return {
+        healthy: false,
+        message: `Remote Docker unavailable: ${message}`,
+      };
+    }
+  }
 
-    // Reinitialize docker client with tunnel endpoint
-    const Docker = (await import("dockerode")).default;
-    this["docker"] = new Docker({
+  async connect(): Promise<void> {
+    const port = await this.tunnel.connect();
+    // Re-initialize docker with new port
+    this.docker = new Docker({
       host: "127.0.0.1",
-      port: localPort,
+      port,
     });
   }
 
-  async disconnect(): Promise<void> {
+  async disconnect() {
     await this.tunnel.disconnect();
   }
-
+  
   getTunnelStatus(): TunnelStatus {
     return this.tunnel.getStatus();
   }

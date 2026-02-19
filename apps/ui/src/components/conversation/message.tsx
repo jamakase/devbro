@@ -7,9 +7,10 @@ import type { Message as MessageType } from "@agent-sandbox/shared";
 
 interface MessageProps {
   message: MessageType;
+  promptAnswers: Record<string, { answer: string }>;
 }
 
-export function Message({ message }: MessageProps) {
+export function Message({ message, promptAnswers }: MessageProps) {
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
 
@@ -49,7 +50,12 @@ export function Message({ message }: MessageProps) {
         {message.toolCalls && message.toolCalls.length > 0 && (
           <div className="space-y-2">
             {message.toolCalls.map((toolCall) => (
-              <ToolCall key={toolCall.id} toolCall={toolCall} />
+              <ToolCall
+                key={toolCall.id}
+                toolCall={toolCall}
+                taskId={message.taskId}
+                promptAnswers={promptAnswers}
+              />
             ))}
           </div>
         )}

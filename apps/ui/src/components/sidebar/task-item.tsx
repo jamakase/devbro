@@ -12,6 +12,7 @@ interface TaskItemProps {
 }
 
 const statusIcons = {
+  pending: Loader2,
   creating: Loader2,
   running: Circle,
   stopped: Circle,
@@ -20,6 +21,7 @@ const statusIcons = {
 };
 
 const statusColors = {
+  pending: "text-orange-500",
   creating: "text-yellow-500 animate-spin",
   running: "text-green-500",
   stopped: "text-muted-foreground",

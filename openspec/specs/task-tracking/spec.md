@@ -1,11 +1,15 @@
 ## ADDED Requirements
 
 ### Requirement: Create task
-The system SHALL allow users to create tasks within a project.
+The system SHALL allow users to create tasks associated with a repository.
 
 #### Scenario: Successful task creation
-- **WHEN** user provides task name, project ID, CLI tool (claude/opencode), and server
-- **THEN** system creates task with associated sandbox container
+- **WHEN** user provides repository, branch, description, and server
+- **THEN** system creates task with associated sandbox container using the repo code
+
+#### Scenario: Optional task name
+- **WHEN** user creates task without a name
+- **THEN** system generates a default name or uses the description preview
 
 #### Scenario: Task with GitHub repo
 - **WHEN** user provides GitHub repo URL during task creation
@@ -27,11 +31,11 @@ The system SHALL treat task as the unit combining sandbox and conversation.
 - **THEN** task status updates accordingly
 
 ### Requirement: List project tasks
-The system SHALL return tasks for a given project.
+The system SHALL return tasks for a given project or repository context.
 
 #### Scenario: List tasks
-- **WHEN** user requests tasks for their project
-- **THEN** system returns tasks with name, status, CLI tool, and timestamps
+- **WHEN** user requests tasks
+- **THEN** system returns tasks with name, status, CLI tool, and timestamps, capable of being grouped by repository
 
 #### Scenario: Task ordering
 - **WHEN** tasks are listed
@@ -70,14 +74,14 @@ The system SHALL allow users to delete tasks.
 - **THEN** system stops container if running, removes container, removes volume, and deletes task record
 
 ### Requirement: Task sidebar display
-The system SHALL display tasks under their project in the sidebar.
+The system SHALL display tasks under their repository in the sidebar.
 
-#### Scenario: Collapsed project shows task count
-- **WHEN** project is collapsed in sidebar
-- **THEN** project shows task count badge
+#### Scenario: Collapsed repo shows task count
+- **WHEN** repository group is collapsed in sidebar
+- **THEN** repository shows task count badge
 
-#### Scenario: Expanded project shows tasks
-- **WHEN** user expands project in sidebar
+#### Scenario: Expanded repo shows tasks
+- **WHEN** user expands repository in sidebar
 - **THEN** sidebar shows list of tasks with status indicators
 
 #### Scenario: Click task navigates to detail

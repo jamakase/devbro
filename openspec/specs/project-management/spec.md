@@ -59,21 +59,6 @@ The system SHALL allow users to delete their projects.
 - **WHEN** user deletes project that has tasks
 - **THEN** system warns and requires confirmation, then deletes project and all tasks
 
-### Requirement: Project sidebar display
-The system SHALL display user projects in the sidebar.
-
-#### Scenario: Sidebar projects section
-- **WHEN** authenticated user views any page
-- **THEN** sidebar shows collapsible "Projects" section with user's projects
-
-#### Scenario: Project expansion
-- **WHEN** user clicks project in sidebar
-- **THEN** project expands to show its tasks
-
-#### Scenario: Active project highlight
-- **WHEN** user is viewing a project or its tasks
-- **THEN** sidebar highlights that project
-
 ### Requirement: Project API endpoints
 The system SHALL expose REST endpoints for project operations.
 
@@ -92,3 +77,9 @@ The system SHALL expose REST endpoints for project operations.
 #### Scenario: DELETE /api/projects/[id]
 - **WHEN** authenticated request to DELETE /api/projects/[id]
 - **THEN** system deletes project if owned by user
+
+## REMOVED Requirements
+
+### Requirement: Project sidebar display
+**Reason**: Replaced by repository-based grouping in sidebar as per simplified workflow.
+**Migration**: Use repository grouping in sidebar instead of project grouping.

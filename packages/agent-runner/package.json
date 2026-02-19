@@ -1,0 +1,30 @@
+{
+  "name": "@agent-sandbox/agent-runner",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "agent-runner": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "check-types": "tsc --noEmit",
+    "verify:acp": "tsc && node ./dist/scripts/verify-acp.js"
+  },
+  "dependencies": {
+    "@agentclientprotocol/sdk": "^0.4.9",
+    "@mcpc-tech/acp-ai-provider": "^0.2.4",
+    "ai": "^6.0.86"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

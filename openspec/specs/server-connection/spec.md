@@ -1,7 +1,7 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Add remote server
-The system SHALL allow users to configure remote servers for running sandboxes.
+The system SHALL allow users to configure remote servers for running sandboxes, supporting both SSH (push) and API registration (pull).
 
 #### Scenario: Add server with SSH key
 - **WHEN** user provides hostname, port, username, and SSH private key
@@ -10,6 +10,10 @@ The system SHALL allow users to configure remote servers for running sandboxes.
 #### Scenario: Add server with SSH agent
 - **WHEN** user provides hostname and selects "Use SSH Agent"
 - **THEN** system uses local SSH agent for authentication
+
+#### Scenario: API Registration (Pull Model)
+- **WHEN** a server registers itself via the CLI API with a valid token
+- **THEN** system stores the server record with type "registered" and connection status "connected"
 
 #### Scenario: Duplicate server prevention
 - **WHEN** user adds server with same host:port as existing server they own
@@ -20,15 +24,15 @@ The system SHALL allow users to configure remote servers for running sandboxes.
 - **THEN** user B cannot see or use that server
 
 ### Requirement: List configured servers
-The system SHALL return list of servers owned by the authenticated user.
+The system SHALL return list of servers owned by the authenticated user, including registered servers.
 
 #### Scenario: List servers
 - **WHEN** user requests server list
-- **THEN** system returns only servers owned by current user with name, host, status, and task count
+- **THEN** system returns servers owned by current user (SSH-based and CLI-registered) with status
 
 #### Scenario: Show server health
 - **WHEN** server list is displayed
-- **THEN** each server shows connection status (connected, disconnected, error)
+- **THEN** each server shows connection status (connected, disconnected, error) based on last heartbeat or SSH check
 
 ### Requirement: Remove server
 The system SHALL allow removal of server configurations owned by the user.

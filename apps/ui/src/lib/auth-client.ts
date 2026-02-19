@@ -10,4 +10,21 @@ export const {
   signOut,
   useSession,
   getSession,
+  linkSocial,
 } = authClient;
+
+// Helper function for GitHub sign in/sign up
+export async function signInWithGitHub() {
+  return signIn.social({
+    provider: "github",
+    callbackURL: "/",
+  });
+}
+
+// Helper function to link GitHub to existing account
+export async function linkGitHubAccount() {
+  return linkSocial({
+    provider: "github",
+    callbackURL: "/settings",
+  });
+}
