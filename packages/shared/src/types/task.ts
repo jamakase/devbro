@@ -1,3 +1,5 @@
+import type { SandboxStatus } from "./sandbox.js";
+
 export type TaskStatus =
   | "pending"
   | "creating"
@@ -54,6 +56,23 @@ export interface SandboxBootstrapPlan {
   mcpConfig?: McpConfig;
 }
 
+export interface TaskInspectResult {
+  status: SandboxStatus;
+  containerId: string;
+  uptime?: number;
+  memoryUsage?: number;
+  cpuPercent?: number;
+}
+
+export interface TaskInspectRequest {
+  id: string;
+  status: "pending" | "completed" | "failed";
+  requestedAt: string;
+  completedAt?: string;
+  errorMessage?: string;
+  result?: TaskInspectResult;
+}
+
 export interface TaskConfig {
   githubRepo?: string;
   githubBranch?: string;
@@ -66,6 +85,7 @@ export interface TaskConfig {
   skills?: SkillsConfig;
   mcp?: McpConfig;
   bootstrap?: SandboxBootstrapPlan;
+  inspectRequest?: TaskInspectRequest;
   lastResult?: {
     success: boolean;
     exitCode: number;

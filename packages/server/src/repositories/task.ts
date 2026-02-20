@@ -72,6 +72,15 @@ export class TaskRepository {
     return result.map(this.mapRow);
   }
 
+  async findByServerId(serverId: string): Promise<Task[]> {
+    const result = await db
+      .select()
+      .from(tasks)
+      .where(eq(tasks.serverId, serverId))
+      .orderBy(desc(tasks.createdAt));
+    return result.map(this.mapRow);
+  }
+
   async update(
     id: string,
     updates: Partial<{

@@ -37,8 +37,11 @@ export async function GET(
       );
     }
 
-    // 2. Fetch pending tasks
-    const tasks = await taskRepo.findPendingByServerId(id);
+    const tasks = (await (taskRepo as any).findByServerId(id)) as Task[];
+    const pendingTasks = tasks.filter((task: Task) => {
+      if (task.status === "pending") return true;
+      return (task.config as any)?.inspectRequest?.status === "pending";
+    });
 
     // 3. Update server last connected status
     await serverRepo.update(id, server.userId, {
@@ -48,7 +51,7 @@ export async function GET(
 
     return NextResponse.json<ApiResponse<Task[]>>({
       success: true,
-      data: tasks,
+      data: pendingTasks,
     });
 
   } catch (error) {

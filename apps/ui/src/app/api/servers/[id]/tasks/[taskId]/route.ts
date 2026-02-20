@@ -65,11 +65,18 @@ export async function PATCH(
     if (body.status) updates.status = body.status as TaskStatus;
     if (body.containerId) updates.containerId = body.containerId;
     if (body.errorMessage) updates.errorMessage = body.errorMessage;
+    if (body.config && typeof body.config === "object") {
+      const currentConfig = task.config || {};
+      updates.config = {
+        ...currentConfig,
+        ...body.config,
+      };
+    }
     
     if (body.output !== undefined || body.exitCode !== undefined) {
-        const currentConfig = task.config || {};
+        const baseConfig = updates.config ?? task.config ?? {};
         updates.config = {
-            ...currentConfig,
+            ...baseConfig,
             lastResult: {
                 success: body.status === 'completed',
                 exitCode: body.exitCode ?? (body.status === 'completed' ? 0 : 1),

@@ -82,6 +82,11 @@ async function processTask(
     serverId: string, 
     token: string
 ) {
+    const inspectRequest = (task.config as any)?.inspectRequest as any;
+    if (inspectRequest?.status === "pending") {
+        await handleInspectRequest(task, provider, baseUrl, serverId, token, inspectRequest);
+        return;
+    }
     await updateTaskStatus(baseUrl, serverId, token, task.id, "running");
 
     try {
@@ -133,12 +138,63 @@ async function processTask(
     }
 }
 
+async function handleInspectRequest(
+    task: Task,
+    provider: ContainerProvider,
+    baseUrl: string,
+    serverId: string,
+    token: string,
+    inspectRequest: any
+) {
+    const completedAt = new Date().toISOString();
+    if (!task.containerId) {
+        await updateTaskStatus(baseUrl, serverId, token, task.id, undefined, {
+            config: {
+                ...task.config,
+                inspectRequest: {
+                    ...inspectRequest,
+                    status: "failed",
+                    completedAt,
+                    errorMessage: "Container not started",
+                },
+            },
+        });
+        return;
+    }
+    try {
+        const result = await provider.inspectContainer(task.containerId);
+        await updateTaskStatus(baseUrl, serverId, token, task.id, undefined, {
+            config: {
+                ...task.config,
+                inspectRequest: {
+                    ...inspectRequest,
+                    status: "completed",
+                    completedAt,
+                    result,
+                },
+            },
+        });
+    } catch (error) {
+        await updateTaskStatus(baseUrl, serverId, token, task.id, undefined, {
+            config: {
+                ...task.config,
+                inspectRequest: {
+                    ...inspectRequest,
+                    status: "failed",
+                    completedAt,
+                    errorMessage: error instanceof Error ? error.message : String(error),
+                },
+            },
+        });
+    }
+}
+
 async function updateTaskStatus(
     baseUrl: string, 
     serverId: string, 
     token: string, 
     taskId: string, 
-    status: string,
+    status?: string,
     updates?: any
 ) {
     // We need to implement this endpoint on the server
@@ -148,7 +204,7 @@ async function updateTaskStatus(
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ status, ...updates })
+        body: JSON.stringify({ ...(status ? { status } : {}), ...updates })
     });
     // Ignore errors for now or log
     if (!res.ok) console.error(`Failed to update task status: ${res.statusText}`);
